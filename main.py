@@ -109,7 +109,10 @@ def enter_credentials(login, password, error_coords=False):
         click_button(ERROR_SECOND_LOGIN_BUTTON_FILE)
     return None
 
+
 """ Функция для сохранения новых кордов """
+
+
 def request_new_coords(file_name, cords_name, parent=None):
     # Модалька для понимания
     if parent:
@@ -188,6 +191,12 @@ def close_modal_window_and_click_wheel():
     krestik_coords = load_coords('coords/krestik.txt')
     print(f'Нажимаем на крестик по координатам: {krestik_coords}')
     pyautogui.click(krestik_coords)
+
+
+def open_fullscreen():
+    fullscreen_coords = load_coords('coords/fullscreen.txt')
+    print(f'Открываем полноэкранный режим по координатам: {fullscreen_coords}')
+    pyautogui.click(fullscreen_coords)
 
 
 def click_third_wheel():
@@ -454,6 +463,8 @@ def wait_for_browser_to_close():
 
 
 """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
+
+
 def main_step(user):
     print(f"Обрабатываем пользователя: {user['login']}")
 
@@ -463,7 +474,9 @@ def main_step(user):
     time.sleep(4)
 
     if wait_for_mimic_window():
+        open_fullscreen()
         print("Браузер успешно открыт, продолжаем работу...")
+
         enter_url_in_browser()
         wait_for_page_load()
         process_user_account(user)
@@ -546,6 +559,8 @@ class WorkersThread(QThread):
 
 
 """ Окно выбора колеса """
+
+
 class WheelSelectionWindow(QDialog):
     wheel_selected = pyqtSignal(str)
 
@@ -586,6 +601,8 @@ class WheelSelectionWindow(QDialog):
 
 
 """ Окно программы """
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -687,6 +704,7 @@ class MainWindow(QMainWindow):
             # Список всех координат для настройки
             coord_configs = [
                 (COORDS_FILE, 'кнопки запуска разового профиля'),
+                ('coords/fullscreen.txt', 'кнопки полного окна'),
                 (LOGIN_BUTTON_FILE, 'кнопки логина'),
                 (LOGIN_FIELD_FILE, 'поля логина'),
                 (PASSWORD_FIELD_FILE, 'поля пароля'),
