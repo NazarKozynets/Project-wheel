@@ -534,7 +534,7 @@ def main_step(user):
     activate_new_profile()
     login_to_site()
     process_user_account(user)
-    close_modal_window_and_click_wheel(user['login'])
+    close_modal_window_and_click_wheel()
 
 
 def wait_if_paused(self):
@@ -597,6 +597,7 @@ class WheelSelectionWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Выберите колесо')
+        self.setFixedSize(400, 200)
         layout = QVBoxLayout()
         self.first_wheel_button = QPushButton('Первое колесо')
         self.first_wheel_button.clicked.connect(self.select_first_wheel)
