@@ -68,51 +68,64 @@ def read_excel(file_name):
     return users
 
 
-def paste_data_to_excel(file_path, current_login):
+def write_excel(current_login, type, amount):
+    print(f'Сохраняем данные для: {current_login} - {type}: {amount}')
     try:
-        wb = load_workbook(file_path)
+        wb = load_workbook(EXCEL_FILE)
         sheet = wb.active
-        copied_data = pyperclip.paste()
-        if not copied_data:
-            print('Буфер обмена пуст. Скопируйте данные перед запуском.')
-        return None
+
+        target_row = None
+        for row in range(1, sheet.max_row + 1):
+            login_cell = sheet.cell(row=row, column=1).value
+            if login_cell == current_login:
+                target_row = row
+                break
+
+        if target_row is None:
+            print(f'Логин {current_login} не найден в файле')
+            return False
+
+        if type == 'pounds':
+            sheet.cell(row=target_row, column=3, value=amount)
+            print(f'Фунты сохранены: {amount}')
+        elif type == 'tokens':
+            sheet.cell(row=target_row, column=4, value=amount)
+            print(f'Токены сохранены: {amount}')
+        else:
+            print(f'Неизвестный тип: {type}')
+            return False
+
+        wb.save(EXCEL_FILE)
+        print(f'Данные успешно сохранены для {current_login}')
+        return True
+
     except Exception as e:
         print(f'Ошибка при работе с Excel: {e}')
+        return False
 
 
-def paste_data_to_excel2(file_path, current_login):
-    try:
-        wb = load_workbook(file_path)
-        sheet = wb.active
-        copied_data = pyperclip.paste()
-        if not copied_data:
-            print('Буфер обмена пуст. Скопируйте данные перед запуском.')
-        return None
-    except Exception as e:
-        print(f'Ошибка при работе с Excel: {e}')
-
-
+""" Ввод данных аккаунта """
 def enter_credentials(login, password, error_coords=False):
     if not error_coords:
         print('Нажимаем первую кнопку Login')
         click_button(LOGIN_BUTTON_FILE)
-        time.sleep(1)
+        time.sleep(2)
         print(f'Вводим логин: {login}')
         click_button(LOGIN_FIELD_FILE)
         pyautogui.typewrite(login, interval=0.1)
-    print(f'Вводим пароль: {password}')
+        print(f'Вводим пароль: {password}')
+        click_button(PASSWORD_FIELD_FILE)
+        pyautogui.typewrite(password, interval=0.1)
+        print('Нажимаем вторую кнопку Login')
+        click_button(SECOND_LOGIN_BUTTON_FILE)
     if error_coords:
         click_button(ERROR_PASSWORD_FIELD_FILE)
-    pyautogui.typewrite(password, interval=0.1)
-    print('Нажимаем вторую кнопку Login')
     if error_coords:
         click_button(ERROR_SECOND_LOGIN_BUTTON_FILE)
     return None
 
 
 """ Функция для сохранения новых кордов """
-
-
 def request_new_coords(file_name, cords_name, parent=None):
     # Модалька для понимания
     if parent:
@@ -187,8 +200,8 @@ def handle_error_and_retry(login, password):
 
 
 def close_modal_window_and_click_wheel():
-    time.sleep(10)
     krestik_coords = load_coords('coords/krestik.txt')
+    time.sleep(10)
     print(f'Нажимаем на крестик по координатам: {krestik_coords}')
     pyautogui.click(krestik_coords)
 
@@ -228,57 +241,18 @@ def second_click_to_wheel():
     time.sleep(10)
 
 
-def press_f12():
-    print('Нажимаем клавишу F12.')
-    pyautogui.press('f12')
-    time.sleep(5)
-
-
-def press_ctrl_f():
-    print('Нажимаем комбинацию Ctrl + F для поиска.')
-    pyautogui.hotkey('ctrl', 'f')
-    time.sleep(3)
-
-
-def print_funt():
-    print('Вводим символ \'£\' в строку поиска.')
-    pyperclip.copy('£')
-    pyautogui.hotkey('ctrl', 'v')
-
-
 def press_enter():
     print('Нажимаем Enter для выполнения поиска.')
     pyautogui.press('enter')
     time.sleep(1)
 
 
-def denaid_password_window():
+def denied_password_window():
     print('Закрываем окно пароля.')
     target_point2_coords = load_coords('coords/target_point2.txt')
     print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
     pyautogui.click(target_point2_coords)
     time.sleep(2)
-
-
-def click_and_copy_funt():
-    print('Загружаем координаты для новой точки.')
-    target_point_coords = load_coords('coords/target_point.txt')
-    print(f'Наводим курсор на точку по координатам: {target_point_coords}')
-    pyautogui.moveTo(target_point_coords)
-    print('Делаем двойной клик.')
-    pyautogui.doubleClick()
-    time.sleep(1)
-    print('Копируем содержимое с помощью Ctrl + C.')
-    pyautogui.hotkey('ctrl', 'c')
-    time.sleep(1)
-
-
-def enter_data_to_excel(current_login):
-    copied_data = pyperclip.paste()
-    if copied_data:
-        print(f'Сохраняем данные для: {current_login}')
-        paste_data_to_excel(EXCEL_FILE, current_login)
-    return None
 
 
 def press_krestik():
@@ -287,42 +261,6 @@ def press_krestik():
     print(f'Нажимаем на крестик по координатам: {target_point5_coords}')
     pyautogui.click(target_point5_coords)
     time.sleep(1)
-
-
-def print_coinsbalance():
-    print('Вводим символ \'coinsbalance\' в строку поиска.')
-    pyperclip.copy('coinsbalance')
-    pyautogui.hotkey('ctrl', 'v')
-    time.sleep(1)
-
-
-def open_ladbucks():
-    print('Загружаем координаты для новой точки.')
-    target_point3_coords = load_coords('coords/target_point3.txt')
-    print(f'Нажимаем на крестик по координатам: {target_point3_coords}')
-    pyautogui.click(target_point3_coords)
-
-
-def copy_ladbucks():
-    print('Загружаем координаты для новой точки.')
-    target_point4_coords = load_coords('coords/target_point4.txt')
-    print(f'Наводим курсор на точку по координатам: {target_point4_coords}')
-    pyautogui.moveTo(target_point4_coords)
-    time.sleep(1)
-    print('Делаем двойной клик.')
-    pyautogui.doubleClick()
-    time.sleep(1)
-    print('Копируем содержимое с помощью Ctrl + C.')
-    pyautogui.hotkey('ctrl', 'c')
-    time.sleep(1)
-
-
-def paste_ladbucks(current_login):
-    copied_data = pyperclip.paste()
-    if copied_data:
-        print(f'Сохраняем данные для: {current_login}')
-        paste_data_to_excel2(EXCEL_FILE, current_login)
-    return None
 
 
 def wait_for_mimic_window(timeout=30):
@@ -422,12 +360,6 @@ def enter_url_in_browser(retries=3):
     return False
 
 
-def wait_for_page_load():
-    print('Ожидаем загрузки страницы...')
-    time.sleep(10)
-    print('Страница загружена.')
-
-
 def close_browser_window():
     windows = list(gw.getWindowsWithTitle(MIMIC_WINDOW_TITLE))
     if windows:
@@ -445,7 +377,6 @@ def activate_new_profile():
 def login_to_site():
     if wait_for_mimic_window():
         enter_url_in_browser()
-        wait_for_page_load()
     return None
 
 
@@ -462,10 +393,126 @@ def wait_for_browser_to_close():
     time.sleep(10)
 
 
-""" Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
+def find_and_copy_pound(): # Функция поиска и копирования фунтов в DevTools
+    for attempt in range(3):
+        print(f'Попытка {attempt + 1} из 3 скопировать фунты...')
+
+        if attempt > 0:
+            print('Закрываем DevTools перед началом новой попытки...')
+            pyautogui.press('f12')
+            time.sleep(2)
+
+        print('Нажимаем клавишу F12.')
+        pyautogui.press('f12')
+        time.sleep(3)
+
+        print('Нажимаем комбинацию Ctrl + F для поиска.')
+        pyautogui.hotkey('ctrl', 'f')
+        time.sleep(2)
+
+        print('Вводим символ \'£\' в строку поиска.')
+        pyperclip.copy('£')
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(1)
+
+        pyautogui.press('f3')
+        time.sleep(1)
+        pyautogui.press('f3')
+        time.sleep(1)
+
+        print('Загружаем координаты для новой точки.')
+        target_point_coords = load_coords('coords/target_point.txt')
+        print(f'Наводим курсор на точку по координатам: {target_point_coords}')
+        pyautogui.moveTo(target_point_coords)
+        print('Делаем двойной клик.')
+        pyautogui.doubleClick()
+        time.sleep(1)
+        print('Копируем содержимое с помощью Ctrl + C.')
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(1)
+
+        copied_data = pyperclip.paste()
+        if copied_data:
+            print('Фунты успешно скопированы!')
+            time.sleep(1)
+            return copied_data
+        else:
+            print(f'Не удалось скопировать фунты на попытке {attempt + 1}')
+
+    print('Не удалось скопировать фунты после 3 попыток')
+    time.sleep(1)
+    return None
+
+def find_and_copy_tokens(): # Функция поиска и копирования токенов в DevTools
+    for attempt in range(3):
+        print(f'Попытка {attempt + 1} из 3 скопировать токены...')
+
+        print('Закрываем DevTools перед началом новой попытки...')
+        pyautogui.press('f12')
+        time.sleep(2)
+
+        print('Нажимаем клавишу F12.')
+        pyautogui.press('f12')
+        time.sleep(3)
+
+        print('Нажимаем комбинацию Ctrl + F для поиска.')
+        pyautogui.hotkey('ctrl', 'f')
+        time.sleep(2)
+
+        """ Поиск токенов """
+
+        print('Вводим символ \'coinsbalance\' в строку поиска.')
+        pyperclip.copy('coinsbalance')
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(1)
+
+        """ Открытие блока с токенами """
+
+        print('Загружаем координаты для новой точки.')
+        target_point3_coords = load_coords('coords/target_point3.txt')
+        print(f'Нажимаем на крестик по координатам: {target_point3_coords}')
+        pyautogui.click(target_point3_coords)
+
+        """ Копирование токенов """
+
+        print('Загружаем координаты для новой точки.')
+        target_point4_coords = load_coords('coords/target_point4.txt')
+        print(f'Наводим курсор на точку по координатам: {target_point4_coords}')
+        pyautogui.moveTo(target_point4_coords)
+        time.sleep(1)
+        print('Делаем двойной клик.')
+        pyautogui.doubleClick()
+        time.sleep(1)
+        print('Копируем содержимое с помощью Ctrl + C.')
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(1)
+
+        print('Загружаем координаты для новой точки.')
+        target_point_coords = load_coords('coords/target_point.txt')
+        print(f'Наводим курсор на точку по координатам: {target_point_coords}')
+        pyautogui.moveTo(target_point_coords)
+        print('Делаем двойной клик.')
+        pyautogui.doubleClick()
+        time.sleep(1)
+        print('Копируем содержимое с помощью Ctrl + C.')
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(1)
+
+        copied_data = pyperclip.paste()
+        if copied_data:
+            print('Токены успешно скопированы!')
+            time.sleep(1)
+            return copied_data
+        else:
+            print(f'Не удалось скопировать токены на попытке {attempt + 1}')
+
+    print('Не удалось скопировать токены после 3 попыток')
+    time.sleep(1)
+    return None
 
 
-def main_step(user):
+def main_step(user, selected_wheel="Третье колесо"):
+    """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
     print(f"Обрабатываем пользователя: {user['login']}")
 
     close_browser_window()
@@ -478,9 +525,29 @@ def main_step(user):
         print("Браузер успешно открыт, продолжаем работу...")
 
         enter_url_in_browser()
-        wait_for_page_load()
+        time.sleep(8)
         process_user_account(user)
+
+        """ Закрытие модалки и клики по колёсам """
         close_modal_window_and_click_wheel()
+
+        if selected_wheel == 'Первое колесо':
+            click_first_wheel()
+        elif selected_wheel == 'Второе колесо':
+            click_second_wheel()
+        elif selected_wheel == 'Третье колесо':
+            click_third_wheel()
+
+        """ Поиск кол-ва фунтов """
+        pound_amount = find_and_copy_pound()
+        write_excel(user['login'], 'pounds', pound_amount)
+
+        """ Поиск кол-ва токенов """
+        tokens_amount = find_and_copy_tokens()
+        write_excel(user['login'], 'tokens', tokens_amount)
+
+
+        press_krestik()
     else:
         print("Не удалось открыть браузер, пропускаем пользователя")
 
@@ -497,8 +564,7 @@ def wait_if_paused(self):
     return None
 
 
-""" Сам воркер - бот который кликает по всему """
-class WorkersThread(QThread):
+class WorkersThread(QThread): # Сам воркер - бот который кликает по всему
     update_label = pyqtSignal(str)
 
     def __init__(self, selected_wheel=None):
@@ -523,25 +589,7 @@ class WorkersThread(QThread):
             self.update_label.emit(f'Обработка пользователя: {user["login"]}')
             try:
                 main_step(user)
-
-                # Закрытие модалки и клики по колёсам
-                close_modal_window_and_click_wheel()
-                if self.selected_wheel == 'Первое колесо':
-                    click_first_wheel()
-                elif self.selected_wheel == 'Второе колесо':
-                    click_second_wheel()
-                elif self.selected_wheel == 'Третье колесо':
-                    click_third_wheel()
-
-                # Доп. шаги для копирования данных
-                click_and_copy_funt()
-                enter_data_to_excel(user['login'])
-                copy_ladbucks()
-                paste_ladbucks(user['login'])
-                press_krestik()
-
                 self.update_label.emit(f'Пользователь {user["login"]} обработан')
-
             except Exception as e:
                 self.update_label.emit(f'Ошибка при обработке {user["login"]}: {e}')
                 continue
@@ -558,10 +606,7 @@ class WorkersThread(QThread):
             print('Поток возобновлен.')
 
 
-""" Окно выбора колеса """
-
-
-class WheelSelectionWindow(QDialog):
+class WheelSelectionWindow(QDialog): # Окно выбора колеса
     wheel_selected = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -714,11 +759,11 @@ class MainWindow(QMainWindow):
                 ('coords/second_wheel.txt', 'второго колеса'),
                 ('coords/third_wheel.txt', 'третьего колеса'),
                 ('coords/third_wheel2.txt', 'колеса для прокрутки'),
-                ('coords/target_point2.txt', 'закрытия модального окна с сохранением пароля'),
                 ('coords/target_point.txt', 'фунта'),
-                ('coords/target_point5.txt', 'крестика в поисковой строке'),
                 ('coords/target_point3.txt', 'места открытия ледбаксов'),
                 ('coords/target_point4.txt', 'количества ледбаксов')
+                # ('coords/target_point5.txt', 'крестика в поисковой строке'),
+                # ('coords/target_point2.txt', 'закрытия модального окна с сохранением пароля'),
             ]
 
             # Настройка всех координат через цикл
