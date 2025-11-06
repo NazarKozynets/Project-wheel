@@ -201,7 +201,7 @@ def handle_error_and_retry(login, password):
 
 def close_modal_window_and_click_wheel():
     krestik_coords = load_coords('coords/krestik.txt')
-    time.sleep(10)
+    time.sleep(7)
     print(f'Нажимаем на крестик по координатам: {krestik_coords}')
     pyautogui.click(krestik_coords)
 
@@ -245,14 +245,6 @@ def press_enter():
     print('Нажимаем Enter для выполнения поиска.')
     pyautogui.press('enter')
     time.sleep(1)
-
-
-def denied_password_window():
-    print('Закрываем окно пароля.')
-    target_point2_coords = load_coords('coords/target_point2.txt')
-    print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
-    pyautogui.click(target_point2_coords)
-    time.sleep(2)
 
 
 def press_krestik():
@@ -360,20 +352,6 @@ def enter_url_in_browser(retries=3):
     return False
 
 
-def close_browser_window():
-    windows = list(gw.getWindowsWithTitle(MIMIC_WINDOW_TITLE))
-    if windows:
-        print('Закрываем окно браузера.')
-        windows[0].close()
-        time.sleep(2)
-    return None
-
-
-def activate_new_profile():
-    print('Запускаем разовый профиль в мультилогине...')
-    click_button(COORDS_FILE)
-
-
 def login_to_site():
     if wait_for_mimic_window():
         enter_url_in_browser()
@@ -382,10 +360,21 @@ def login_to_site():
 
 def process_user_account(user):
     enter_credentials(user['login'], user['password'])
-    success = handle_error_and_retry(user['login'], user['password'])
-    if success:
-        print(f"Успешный вход для пользователя: {user['login']}")
-    return None
+    time.sleep(2)
+    print('Закрываем окно с сохранением пароля.')
+    target_point2_coords = load_coords('coords/target_point2.txt')
+    print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
+    pyautogui.click(target_point2_coords)
+    time.sleep(1)
+    print('Закрываем окно с языком.')
+    target_point2_coords = load_coords('coords/target_point2.txt')
+    print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
+    pyautogui.click(target_point2_coords)
+    time.sleep(1)
+    # success = handle_error_and_retry(user['login'], user['password'])
+    # if success:
+    print(f"Успешный вход для пользователя: {user['login']}")
+    # return None
 
 
 def wait_for_browser_to_close():
@@ -453,7 +442,7 @@ def find_and_copy_tokens(): # Функция поиска и копирован�
 
         print('Нажимаем клавишу F12.')
         pyautogui.press('f12')
-        time.sleep(3)
+        time.sleep(2)
 
         print('Нажимаем комбинацию Ctrl + F для поиска.')
         pyautogui.hotkey('ctrl', 'f')
@@ -487,17 +476,6 @@ def find_and_copy_tokens(): # Функция поиска и копирован�
         pyautogui.hotkey('ctrl', 'c')
         time.sleep(1)
 
-        print('Загружаем координаты для новой точки.')
-        target_point_coords = load_coords('coords/target_point.txt')
-        print(f'Наводим курсор на точку по координатам: {target_point_coords}')
-        pyautogui.moveTo(target_point_coords)
-        print('Делаем двойной клик.')
-        pyautogui.doubleClick()
-        time.sleep(1)
-        print('Копируем содержимое с помощью Ctrl + C.')
-        pyautogui.hotkey('ctrl', 'c')
-        time.sleep(1)
-
         copied_data = pyperclip.paste()
         if copied_data:
             print('Токены успешно скопированы!')
@@ -515,9 +493,11 @@ def main_step(user, selected_wheel="Третье колесо"):
     """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
     print(f"Обрабатываем пользователя: {user['login']}")
 
-    close_browser_window()
+    pyautogui.hotkey('alt', 'f4')
+    time.sleep(2)
 
-    activate_new_profile()
+    print('Запускаем разовый профиль в мультилогине...')
+    click_button(COORDS_FILE)
     time.sleep(4)
 
     if wait_for_mimic_window():
@@ -525,7 +505,7 @@ def main_step(user, selected_wheel="Третье колесо"):
         print("Браузер успешно открыт, продолжаем работу...")
 
         enter_url_in_browser()
-        time.sleep(8)
+        time.sleep(5)
         process_user_account(user)
 
         """ Закрытие модалки и клики по колёсам """
@@ -552,8 +532,8 @@ def main_step(user, selected_wheel="Третье колесо"):
         print("Не удалось открыть браузер, пропускаем пользователя")
 
     print("Завершаем работу с браузером...")
-    close_browser_window()
-    time.sleep(2)
+    pyautogui.hotkey('alt', 'f4')
+    time.sleep(1)
 
 
 def wait_if_paused(self):
@@ -646,8 +626,6 @@ class WheelSelectionWindow(QDialog): # Окно выбора колеса
 
 
 """ Окно программы """
-
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -754,6 +732,7 @@ class MainWindow(QMainWindow):
                 (LOGIN_FIELD_FILE, 'поля логина'),
                 (PASSWORD_FIELD_FILE, 'поля пароля'),
                 (SECOND_LOGIN_BUTTON_FILE, 'второй кнопки логина'),
+                ('coords/target_point2.txt', 'закрытия модального окна с сохранением пароля'),
                 ('coords/krestik.txt', 'крестика модального окна'),
                 ('coords/first_wheel.txt', 'первого колеса'),
                 ('coords/second_wheel.txt', 'второго колеса'),
@@ -763,7 +742,6 @@ class MainWindow(QMainWindow):
                 ('coords/target_point3.txt', 'места открытия ледбаксов'),
                 ('coords/target_point4.txt', 'количества ледбаксов')
                 # ('coords/target_point5.txt', 'крестика в поисковой строке'),
-                # ('coords/target_point2.txt', 'закрытия модального окна с сохранением пароля'),
             ]
 
             # Настройка всех координат через цикл
