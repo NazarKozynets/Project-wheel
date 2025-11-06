@@ -4,7 +4,7 @@ import time
 import os
 import pyperclip
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox
-from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, Qt
 import sys
 from openpyxl import load_workbook
 import keyboard
@@ -114,12 +114,12 @@ def request_new_coords(file_name, cords_name, parent=None):
     # Модалька для понимания
     if parent:
         QMessageBox.information(parent, f'Настройка координат {cords_name}',
-                                f'Наведите курсор на нужную позицию {cords_name} и нажмите F12 для сохранения координат.')
+                                f'Наведите курсор на нужную позицию {cords_name} и нажмите F7 для сохранения координат.')
 
-    print('Наведите курсор на нужную позицию и нажмите F12')
+    print('Наведите курсор на нужную позицию и нажмите F7')
 
     # Ожидание нажатия F12
-    keyboard.wait('f12')
+    keyboard.wait('f7')
 
     # Получение и запись кордов
     x, y = pyautogui.position()
@@ -365,6 +365,7 @@ def close_browser_window():
 def activate_new_profile():
     print('Запускаем разовый профиль в мультилогине...')
     click_button(COORDS_FILE)
+    time.sleep(5)
 
 
 def login_to_site():
@@ -384,13 +385,14 @@ def process_user_account(user):
 
 def wait_for_browser_to_close():
     print('Ожидаем закрытия браузера...')
-    time.sleep(120)
+    time.sleep(10)
 
 
+""" Сбор функций воркера связанных с браузером (от открытия браузера до закрытия) """
 def main_step(user):
     close_browser_window()
-    activate_multilogin_window()
     activate_new_profile()
+    activate_multilogin_window()
     login_to_site()
     process_user_account(user)
     close_modal_window_and_click_wheel()
@@ -404,7 +406,8 @@ def wait_if_paused(self):
     return None
 
 
-class WorkerThread(QThread):
+""" Сам воркер - бот который кликает по всему """
+class WorkersThread(QThread):
     update_label = pyqtSignal(str)
 
     def __init__(self, selected_wheel=None):
@@ -412,42 +415,60 @@ class WorkerThread(QThread):
         self._is_paused = False
         self._is_running = True
         self.selected_wheel = selected_wheel
+        self.excel_file = EXCEL_FILE
 
     def run(self):
         if not self.selected_wheel:
             self.update_label.emit('Колесо не выбрано!')
-        return None
+            return
 
-    def execute_first_wheel_code(self):
-        print('Код для первого колеса выполняется...')
-        self.update_label.emit('Первое колесо нажато')
-        click_first_wheel()
+        self.update_label.emit('Старт процесса...')
+        users = read_excel(self.excel_file)
+        self.update_label.emit(f'Найдено пользователей: {len(users)}')
 
-    def execute_second_wheel_code(self):
-        print('Код для второго колеса выполняется...')
-        self.update_label.emit('Второе колесо нажато')
-        click_second_wheel()
+        for user in users:
+            self.wait_if_paused()
+            self.update_label.emit(f'Обработка пользователя: {user["login"]}')
+            try:
+                main_step(user)
 
-    def execute_third_wheel_code(self):
-        print('Код для третьего колеса выполняется...')
-        self.update_label.emit('Третье колесо нажато')
-        click_third_wheel()
+                # Закрытие модалки и клики по колёсам
+                close_modal_window_and_click_wheel()
+                if self.selected_wheel == 'Первое колесо':
+                    click_first_wheel()
+                elif self.selected_wheel == 'Второе колесо':
+                    click_second_wheel()
+                elif self.selected_wheel == 'Третье колесо':
+                    click_third_wheel()
+
+                # Доп. шаги для копирования данных
+                click_and_copy_funt()
+                enter_data_to_excel(user['login'])
+                copy_ladbucks()
+                paste_ladbucks(user['login'])
+                press_krestik()
+
+                self.update_label.emit(f'Пользователь {user["login"]} обработан')
+
+            except Exception as e:
+                self.update_label.emit(f'Ошибка при обработке {user["login"]}: {e}')
+                continue
+
+        self.update_label.emit('Все пользователи обработаны!')
 
     def wait_if_paused(self):
-        if self._is_paused:
+        while self._is_paused:
             self.msleep(100)
 
     def pause(self):
         if not self._is_paused:
             self._is_paused = True
             print('Поток приостановлен.')
-        return None
 
     def resume(self):
         if self._is_paused:
             self._is_paused = False
             print('Поток возобновлен.')
-        return None
 
 
 class WheelSelectionWindow(QWidget):
@@ -482,20 +503,22 @@ class WheelSelectionWindow(QWidget):
         self.close()
 
 
+""" Окно программы """
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Ladbrokes')
         self.setFixedSize(400, 200)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.selected_wheel = None
         self.excel_file_path = 'excel/users.xlsx'
-        self.thread = WorkerThread()
+        self.thread = WorkersThread()
         self.thread.update_label.connect(self.update_status)
         self.init_ui()
         self.setup_global_shortcuts()
 
     def init_ui(self):
-        """Инициализация пользовательского интерфейса"""  # inserted
+        """Инициализация пользовательского интерфейса"""
         layout = QVBoxLayout()
         self.label = QLabel('Нажмите \'Старт\' для начала работы')
         layout.addWidget(self.label)
@@ -521,52 +544,52 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
     def show_wheel_selection(self):
-        """Показать окно выбора колеса"""  # inserted
+        """Показать окно выбора колеса"""
         self.wheel_selection_window = WheelSelectionWindow()
         self.wheel_selection_window.wheel_selected.connect(self.on_wheel_selected)
         self.wheel_selection_window.show()
 
     def on_wheel_selected(self, wheel):
-        """Обработчик выбора колеса"""  # inserted
+        """Обработчик выбора колеса"""
         self.selected_wheel = wheel
         self.label.setText(f'Вы выбрали: {wheel}')
 
     def execute_wheel_code(self):
-        """Выполнение кода для выбранного колеса"""  # inserted
+        """Выполнение кода для выбранного колеса"""
         if not self.selected_wheel:
             QMessageBox.warning(self, 'Ошибка', 'Колесо не выбрано!')
         return None
 
     def update_label(self, message):
-        """Обновление текста метки"""  # inserted
+        """Обновление текста метки"""
         self.label.setText(message)
 
     @pyqtSlot(str)
     def update_status(self, message):
-        """Обновление статуса (слот)"""  # inserted
+        """Обновление статуса (слот)"""
         self.label.setText(message)
 
     def setup_global_shortcuts(self):
-        """Настройка глобальных горячих клавиш"""  # inserted
+        """Настройка глобальных горячих клавиш"""
         keyboard.add_hotkey('f9', self.start_process)
         keyboard.add_hotkey('f8', self.pause_process)
 
     def start_process(self):
-        """Запуск процесса"""  # inserted
+        """Запуск процесса"""
         if not self.thread.isRunning():
-            self.thread = WorkerThread(self.selected_wheel)
+            self.thread = WorkersThread(self.selected_wheel)
             self.thread.update_label.connect(self.update_status)
             self.thread.start()
         return None
 
     def pause_process(self):
-        """Приостановка процесса"""  # inserted
+        """Приостановка процесса"""
         if self.thread.isRunning():
             self.thread.pause()
         return None
 
     def clear_excel_data(self):
-        """Очистка данных в Excel"""  # inserted
+        """Очистка данных в Excel"""
         if not self.excel_file_path:
             QMessageBox.critical(self, 'Ошибка', 'Файл Excel не указан.')
         return None
