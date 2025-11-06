@@ -3,7 +3,7 @@ import pygetwindow as gw
 import time
 import os
 import pyperclip
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox, QDialog
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot, Qt
 import sys
 from openpyxl import load_workbook
@@ -109,7 +109,7 @@ def enter_credentials(login, password, error_coords=False):
         click_button(ERROR_SECOND_LOGIN_BUTTON_FILE)
     return None
 
-
+""" Функция для сохранения новых кордов """
 def request_new_coords(file_name, cords_name, parent=None):
     # Модалька для понимания
     if parent:
@@ -317,34 +317,89 @@ def paste_ladbucks(current_login):
 
 
 def activate_multilogin_window():
-    windows = [w for w in gw.getWindowsWithTitle('Multilogin') if not w.isActive]
-    if not windows:
-        print('Окно Multilogin не найдено.')
+    """Активирует главное окно Multilogin"""
+    time.sleep(2)
+
+    multilogin_patterns = ['Multilogin', 'multi', 'login']
+
+    all_windows = gw.getWindowsWithTitle('')
+    for window in all_windows:
+        if window.isVisible and any(pattern.lower() in window.title.lower() for pattern in multilogin_patterns):
+            try:
+                window.activate()
+                time.sleep(1)
+                if gw.getActiveWindow() == window:
+                    print(f'Окно Multilogin активировано: "{window.title}"')
+                    return True
+            except Exception as e:
+                print(f'Ошибка при активации окна: {e}')
+
+    print('Окно Multilogin не найдено среди видимых окон.')
     return False
 
 
-def wait_for_mimic_window():
+def wait_for_mimic_window(timeout=30):
+    """Ожидает открытия окна браузера Mimic"""
     print('Ожидаем открытия окна браузера Mimic...')
-    for i in range(30):
-        windows = list(gw.getWindowsWithTitle(MIMIC_WINDOW_TITLE))
-        if windows:
-            print('Окно браузера Mimic обнаружено!')
-            windows[0].activate()
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        all_windows = gw.getWindowsWithTitle('')
+        for window in all_windows:
+            if window.isVisible and 'mimic' in window.title.lower():
+                try:
+                    window.activate()
+                    time.sleep(1)
+                    if gw.getActiveWindow() == window:
+                        print(f'Окно браузера Mimic активно: "{window.title}"')
+                        return True
+                except Exception as e:
+                    print(f'Ошибка при активации браузера: {e}')
+
+        print(f'Ожидание браузера... ({int(time.time() - start_time)} сек)')
+        time.sleep(1)
+
+    print('Не удалось активировать окно Mimic в течение таймаута.')
+    return False
+
+
+def enter_url_in_browser(retries=3):
+    """Вводит URL в адресную строку браузера"""
+    for attempt in range(retries):
+        print(f'Попытка вставки URL ({attempt + 1}/{retries})...')
+
+        try:
+            pyperclip.copy(URL_TO_OPEN)
+            time.sleep(0.5)
+
+            pyautogui.hotkey('ctrl', 'l')
+            time.sleep(0.5)
+
+            pyautogui.hotkey('ctrl', 'v')
+            time.sleep(0.5)
+
+            pyautogui.press('enter')
             time.sleep(2)
-            return True
-        else:
-            print('Окно браузера Mimic не найдено.')
-            return False
 
+            pyautogui.hotkey('ctrl', 'l')
+            time.sleep(0.3)
+            pyautogui.hotkey('ctrl', 'c')
+            time.sleep(0.5)
 
-def enter_url_in_browser():
-    print(f'Вставляем URL: {URL_TO_OPEN}')
-    pyperclip.copy(URL_TO_OPEN)
-    pyautogui.hotkey('ctrl', 'l')
-    time.sleep(1)
-    pyautogui.hotkey('ctrl', 'v')
-    pyautogui.press('enter')
-    print('Ссылка вставлена и подтверждена.')
+            current_url = pyperclip.paste().strip()
+            print(f'Текущий URL: {current_url}')
+
+            if URL_TO_OPEN in current_url:
+                print('URL успешно вставлен и загружен!')
+                return True
+            else:
+                print(f'URL не совпадает, ожидался: {URL_TO_OPEN}')
+
+        except Exception as e:
+            print(f'Ошибка при вводе URL: {e}')
+
+    print('Не удалось вставить URL после всех попыток.')
+    return False
 
 
 def wait_for_page_load():
@@ -387,8 +442,7 @@ def wait_for_browser_to_close():
     print('Ожидаем закрытия браузера...')
     time.sleep(10)
 
-
-""" Сбор функций воркера связанных с браузером (от открытия браузера до закрытия) """
+""" Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
 def main_step(user):
     close_browser_window()
     activate_new_profile()
@@ -402,7 +456,7 @@ def wait_if_paused(self):
     if self._is_paused:
         self.msleep(100)
     if not self._is_running:
-        pass  # postinserted
+        pass
     return None
 
 
@@ -427,6 +481,7 @@ class WorkersThread(QThread):
         self.update_label.emit(f'Найдено пользователей: {len(users)}')
 
         for user in users:
+            print(user)
             self.wait_if_paused()
             self.update_label.emit(f'Обработка пользователя: {user["login"]}')
             try:
@@ -460,24 +515,27 @@ class WorkersThread(QThread):
         while self._is_paused:
             self.msleep(100)
 
-    def pause(self):
-        if not self._is_paused:
-            self._is_paused = True
-            print('Поток приостановлен.')
-
     def resume(self):
         if self._is_paused:
             self._is_paused = False
             print('Поток возобновлен.')
 
 
-class WheelSelectionWindow(QWidget):
+""" Окно выбора колеса """
+class WheelSelectionWindow(QDialog):
     wheel_selected = pyqtSignal(str)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setWindowTitle('Выберите колесо')
         self.setFixedSize(400, 200)
+
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Dialog
+        )
+        self.setModal(True)
+
         layout = QVBoxLayout()
         self.first_wheel_button = QPushButton('Первое колесо')
         self.first_wheel_button.clicked.connect(self.select_first_wheel)
@@ -492,15 +550,15 @@ class WheelSelectionWindow(QWidget):
 
     def select_first_wheel(self):
         self.wheel_selected.emit('Первое колесо')
-        self.close()
+        self.accept()
 
     def select_second_wheel(self):
         self.wheel_selected.emit('Второе колесо')
-        self.close()
+        self.accept()
 
     def select_third_wheel(self):
         self.wheel_selected.emit('Третье колесо')
-        self.close()
+        self.accept()
 
 
 """ Окно программы """
@@ -571,7 +629,7 @@ class MainWindow(QMainWindow):
 
     def setup_global_shortcuts(self):
         """Настройка глобальных горячих клавиш"""
-        keyboard.add_hotkey('f9', self.start_process)
+        keyboard.add_hotkey('f9', self.resume_process)
         keyboard.add_hotkey('f8', self.pause_process)
 
     def start_process(self):
@@ -579,14 +637,21 @@ class MainWindow(QMainWindow):
         if not self.thread.isRunning():
             self.thread = WorkersThread(self.selected_wheel)
             self.thread.update_label.connect(self.update_status)
+            self.thread._is_paused = False
             self.thread.start()
         return None
 
     def pause_process(self):
-        """Приостановка процесса"""
         if self.thread.isRunning():
-            self.thread.pause()
-        return None
+            print("Процесс приостановлен")
+            self.thread._is_paused = True
+            self.thread.update_label.emit('Процесс приостановлен')
+
+    def resume_process(self):
+        if self.thread.isRunning():
+            print("Процесс возобновлен")
+            self.thread._is_paused = False
+            self.thread.update_label.emit('Процесс возобновлен')
 
     def clear_excel_data(self):
         """Очистка данных в Excel"""
