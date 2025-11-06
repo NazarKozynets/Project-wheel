@@ -110,166 +110,25 @@ def enter_credentials(login, password, error_coords=False):
     return None
 
 
-def request_new_coords(file_name, parent=None):
-    print(f'Пожалуйста, укажите новые координаты для {file_name}.')
-    print('Сначала наведите курсор на нужную область и нажмите \'Enter\'.')
-    input('Нажмите Enter, когда будете готовы задать координаты.')
-    time.sleep(1)
+def request_new_coords(file_name, cords_name, parent=None):
+    # Модалька для понимания
+    if parent:
+        QMessageBox.information(parent, f'Настройка координат {cords_name}',
+                                f'Наведите курсор на нужную позицию {cords_name} и нажмите F12 для сохранения координат.')
+
+    print('Наведите курсор на нужную позицию и нажмите F12')
+
+    # Ожидание нажатия F12
+    keyboard.wait('f12')
+
+    # Получение и запись кордов
     x, y = pyautogui.position()
     save_coords((x, y), file_name)
-    print(f'Координаты для {file_name} сохранены: {x}, {y}')
+
     if parent:
-        QMessageBox.information(parent, 'Успех', f'Координаты для {file_name} обновлены.')
-
-
-def request_krestik_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на крестик модального окна и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/krestik.txt', parent)
+        QMessageBox.information(parent, 'Успех', f'Координаты для {cords_name} сохранены в файл {file_name}: {x}, {y}')
     else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_multilogin_button_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на кнопку запуска разового профиля и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords(COORDS_FILE, parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_login_button_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на кнопку логина и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords(LOGIN_BUTTON_FILE, parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_login_field_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на поле логина и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords(LOGIN_FIELD_FILE, parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_password_field_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на поле пароля и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords(PASSWORD_FIELD_FILE, parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_secondlogin_field_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на вторую кнопку логин и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords(SECOND_LOGIN_BUTTON_FILE, parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_firstwheel_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на первое колесо и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/first_wheel.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_secondwheel_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на второе колесо и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/second_wheel.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_thirdwheel_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на третье колесо и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/third_wheel.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_presswheel_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на колесо для прокручивания и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/third_wheel2.txt', parent)  # Assuming this is for press wheel, adjust if needed
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_passwordmodal_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на закрытие модального окна с сохранением пароля и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/target_point2.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_funt_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на фунт и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/target_point.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_krest_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на крестик в поисковой строке и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/target_point5.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_ladbucksopen_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на место открытия ледбаксов и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/target_point3.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
-
-
-def request_ladbuckscopy_coords(parent=None):
-    reply = QMessageBox.question(parent, 'Обновление координат',
-                                 'Наведите курсор на количество ледбаксов и нажмите \'Enter\'.\n\nХотите продолжить?',
-                                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-    if reply == QMessageBox.StandardButton.Ok:
-        request_new_coords('coords/target_point4.txt', parent)
-    else:
-        QMessageBox.information(parent, 'Отмена', 'Обновление координат отменено.')
+        print(f'Координаты сохранены: {x}, {y}')
 
 
 def handle_error_and_retry(login, password):
@@ -713,23 +572,30 @@ class MainWindow(QMainWindow):
         return None
 
     def update_button_coordinates(self):
-        """Обновление координат кнопок"""  # inserted
         try:
-            request_multilogin_button_coords(self)
-            request_login_button_coords(self)
-            request_login_field_coords(self)
-            request_password_field_coords(self)
-            request_secondlogin_field_coords(self)
-            request_krestik_coords(self)
-            request_firstwheel_coords(self)
-            request_secondwheel_coords(self)
-            request_thirdwheel_coords(self)
-            request_presswheel_coords(self)
-            request_passwordmodal_coords(self)
-            request_funt_coords(self)
-            request_krest_coords(self)
-            request_ladbucksopen_coords(self)
-            request_ladbuckscopy_coords(self)
+            # Список всех координат для настройки
+            coord_configs = [
+                (COORDS_FILE, 'кнопки запуска разового профиля'),
+                (LOGIN_BUTTON_FILE, 'кнопки логина'),
+                (LOGIN_FIELD_FILE, 'поля логина'),
+                (PASSWORD_FIELD_FILE, 'поля пароля'),
+                (SECOND_LOGIN_BUTTON_FILE, 'второй кнопки логина'),
+                ('coords/krestik.txt', 'крестика модального окна'),
+                ('coords/first_wheel.txt', 'первого колеса'),
+                ('coords/second_wheel.txt', 'второго колеса'),
+                ('coords/third_wheel.txt', 'третьего колеса'),
+                ('coords/third_wheel2.txt', 'колеса для прокрутки'),
+                ('coords/target_point2.txt', 'закрытия модального окна с сохранением пароля'),
+                ('coords/target_point.txt', 'фунта'),
+                ('coords/target_point5.txt', 'крестика в поисковой строке'),
+                ('coords/target_point3.txt', 'места открытия ледбаксов'),
+                ('coords/target_point4.txt', 'количества ледбаксов')
+            ]
+
+            # Настройка всех координат через цикл
+            for file_name, description in coord_configs:
+                request_new_coords(file_name, description, self)
+
             QMessageBox.information(self, 'Успех', 'Координаты обновлены и сохранены.')
         except Exception as e:
             QMessageBox.critical(self, 'Ошибка', f'Не удалось обновить координаты: {e}')
