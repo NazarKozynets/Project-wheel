@@ -316,45 +316,56 @@ def paste_ladbucks(current_login):
     return None
 
 
-def activate_multilogin_window():
-    """Активирует главное окно Multilogin"""
-    time.sleep(2)
-
-    multilogin_patterns = ['Multilogin', 'multi', 'login']
-
-    all_windows = gw.getWindowsWithTitle('')
-    for window in all_windows:
-        if window.isVisible and any(pattern.lower() in window.title.lower() for pattern in multilogin_patterns):
-            try:
-                window.activate()
-                time.sleep(1)
-                if gw.getActiveWindow() == window:
-                    print(f'Окно Multilogin активировано: "{window.title}"')
-                    return True
-            except Exception as e:
-                print(f'Ошибка при активации окна: {e}')
-
-    print('Окно Multilogin не найдено среди видимых окон.')
-    return False
-
-
 def wait_for_mimic_window(timeout=30):
-    """Ожидает открытия окна браузера Mimic"""
+    """Ожидает открытия окна браузера Mimic (упрощенная версия)"""
     print('Ожидаем открытия окна браузера Mimic...')
     start_time = time.time()
 
     while time.time() - start_time < timeout:
         all_windows = gw.getWindowsWithTitle('')
+
         for window in all_windows:
-            if window.isVisible and 'mimic' in window.title.lower():
-                try:
-                    window.activate()
-                    time.sleep(1)
-                    if gw.getActiveWindow() == window:
-                        print(f'Окно браузера Mimic активно: "{window.title}"')
-                        return True
-                except Exception as e:
-                    print(f'Ошибка при активации браузера: {e}')
+            # ВЫВОДИМ ВСЕ СВОЙСТВА ОБЪЕКТА WINDOW
+            print("\n" + "=" * 50)
+            print(f"ТИП ОБЪЕКТА: {type(window)}")
+            print(f"ДОСТУПНЫЕ АТРИБУТЫ И МЕТОДЫ:")
+            for attr in dir(window):
+                if not attr.startswith('_'):  # Показываем только публичные атрибуты
+                    try:
+                        value = getattr(window, attr)
+                        # Ограничиваем длину вывода для удобства чтения
+                        if callable(value):
+                            print(f"  {attr}: <method>")
+                        else:
+                            value_str = str(value)
+                            if len(value_str) > 100:
+                                value_str = value_str[:100] + "..."
+                            print(f"  {attr}: {value_str}")
+                    except Exception as e:
+                        print(f"  {attr}: <error: {e}>")
+            print("=" * 50 + "\n")
+            try:
+                title = window.title
+                is_visible = window.visible
+                print(f"Проверяем окно: '{title}'")
+                print(f"Видимое: {is_visible}")
+
+                if is_visible and title.strip():
+                    if ('mimic' in title.lower() and
+                            'multilogin' not in title.lower() and
+                            len(title) > 10):
+                        try:
+                            print(f"Найдено окно Mimic: '{title}', активируем...")
+                            window.activate()
+                            time.sleep(2)
+                            active_window = gw.getActiveWindow()
+                            if active_window == window:
+                                print(f'Окно браузера Mimic активно: "{title}"')
+                                return True
+                        except Exception as e:
+                            print(f'Ошибка при активации браузера: {e}')
+            except Exception as e:
+                print(f'Ошибка при проверке окна: {e}')
 
         print(f'Ожидание браузера... ({int(time.time() - start_time)} сек)')
         time.sleep(1)
@@ -389,11 +400,11 @@ def enter_url_in_browser(retries=3):
             current_url = pyperclip.paste().strip()
             print(f'Текущий URL: {current_url}')
 
-            if URL_TO_OPEN in current_url:
-                print('URL успешно вставлен и загружен!')
+            if 'ladbrokes.com' in current_url:
+                print('Успешно перешли на сайт Ladbrokes!')
                 return True
             else:
-                print(f'URL не совпадает, ожидался: {URL_TO_OPEN}')
+                print(f'Не удалось перейти на Ladbrokes. Текущий URL: {current_url}')
 
         except Exception as e:
             print(f'Ошибка при вводе URL: {e}')
@@ -420,7 +431,6 @@ def close_browser_window():
 def activate_new_profile():
     print('Запускаем разовый профиль в мультилогине...')
     click_button(COORDS_FILE)
-    time.sleep(5)
 
 
 def login_to_site():
@@ -442,14 +452,28 @@ def wait_for_browser_to_close():
     print('Ожидаем закрытия браузера...')
     time.sleep(10)
 
+
 """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
 def main_step(user):
+    print(f"Обрабатываем пользователя: {user['login']}")
+
     close_browser_window()
+
     activate_new_profile()
-    activate_multilogin_window()
-    login_to_site()
-    process_user_account(user)
-    close_modal_window_and_click_wheel()
+    time.sleep(4)
+
+    if wait_for_mimic_window():
+        print("Браузер успешно открыт, продолжаем работу...")
+        enter_url_in_browser()
+        wait_for_page_load()
+        process_user_account(user)
+        close_modal_window_and_click_wheel()
+    else:
+        print("Не удалось открыть браузер, пропускаем пользователя")
+
+    print("Завершаем работу с браузером...")
+    close_browser_window()
+    time.sleep(2)
 
 
 def wait_if_paused(self):
@@ -567,7 +591,6 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Ladbrokes')
         self.setFixedSize(400, 200)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.selected_wheel = None
         self.excel_file_path = 'excel/users.xlsx'
         self.thread = WorkersThread()
