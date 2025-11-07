@@ -572,6 +572,7 @@ class WorkersThread(QThread):  # Сам воркер - бот который к�
             self._is_paused = False
             print('Поток возобновлен.')
 
+
 class WheelSelectionWindow(QDialog):  # Окно выбора колеса
     wheel_selected = pyqtSignal(str)
 
@@ -611,10 +612,8 @@ class WheelSelectionWindow(QDialog):  # Окно выбора колеса
         self.accept()
 
 
-""" Окно программы """
-
-
 class MainWindow(QMainWindow):
+    """ Окно программы """
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Ladbrokes')
@@ -638,7 +637,7 @@ class MainWindow(QMainWindow):
         self.pause_button.clicked.connect(self.pause_process)
         layout.addWidget(self.pause_button)
         self.clear_button = QPushButton('Очистить данные')
-        self.clear_button.clicked.connect(self.clear_excel_data)
+        self.clear_button.clicked.connect(self.clear_excel_columns)
         layout.addWidget(self.clear_button)
         self.update_coords_button = QPushButton('Обновить координаты кнопок')
         self.update_coords_button.clicked.connect(self.update_button_coordinates)
@@ -704,11 +703,29 @@ class MainWindow(QMainWindow):
             self.thread._is_paused = False
             self.thread.update_label.emit('Процесс возобновлен')
 
-    def clear_excel_data(self):
-        """Очистка данных в Excel"""
+    def clear_excel_columns(self):
+        """Очистка колонок C и D в Excel"""
         if not self.excel_file_path:
             QMessageBox.critical(self, 'Ошибка', 'Файл Excel не указан.')
-        return None
+            return None
+
+        try:
+            workbook = load_workbook(self.excel_file_path)
+            sheet = workbook.active
+
+            for row in sheet.iter_rows(min_row=2):
+                if len(row) >= 3:
+                    row[2].value = None
+                if len(row) >= 4:
+                    row[3].value = None
+
+            workbook.save(self.excel_file_path)
+            workbook.close()
+
+            QMessageBox.information(self, 'Успех', 'Колонки C и D успешно очищены.')
+
+        except Exception as e:
+            QMessageBox.critical(self, 'Ошибка', f'Не удалось очистить файл Excel:\n{e}')
 
     def update_button_coordinates(self):
         try:
