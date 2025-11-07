@@ -145,6 +145,7 @@ def enter_credentials(login, password, error_coords=False):
 
     print('Ввод завершён.')
 
+
 def request_new_coords(file_name, cords_name, parent=None):
     """ Функция для сохранения новых кордов """
     if parent:
@@ -166,7 +167,7 @@ def request_new_coords(file_name, cords_name, parent=None):
 
 def close_modal_window_and_click_wheel():
     krestik_coords = load_coords('coords/krestik.txt')
-    time.sleep(6)
+    time.sleep(3)
     print(f'Нажимаем на крестик по координатам: {krestik_coords}')
     pyautogui.click(krestik_coords)
 
@@ -200,7 +201,6 @@ def second_click_to_wheel():
     third_wheel2_coords = load_coords('coords/third_wheel2.txt')
     print(f'Нажимаем на колесо по новым координатам: {third_wheel2_coords}')
     pyautogui.click(third_wheel2_coords)
-    time.sleep(10)
 
 
 def press_enter():
@@ -227,9 +227,6 @@ def wait_for_mimic_window(timeout=30):
 
         for window in all_windows:
             # ВЫВОДИМ ВСЕ СВОЙСТВА ОБЪЕКТА WINDOW
-            print("\n" + "=" * 50)
-            print(f"ТИП ОБЪЕКТА: {type(window)}")
-            print(f"ДОСТУПНЫЕ АТРИБУТЫ И МЕТОДЫ:")
             for attr in dir(window):
                 if not attr.startswith('_'):  # Показываем только публичные атрибуты
                     try:
@@ -277,6 +274,9 @@ def wait_for_mimic_window(timeout=30):
 
 def process_user_account(user):
     enter_credentials(user['login'], user['password'])
+
+    """ Проверка наличия ошибки невероятным путём сравнивания скриншотов """
+    success = handle_error_and_retry(user['login'], user['password'])
     time.sleep(2)
 
     print('Закрываем окно с сохранением пароля.')
@@ -288,35 +288,58 @@ def process_user_account(user):
     target_point2_coords = load_coords('coords/target_point2.txt')
     pyautogui.click(target_point2_coords)
 
+    if success:
+        print(f"Успешный вход для пользователя: {user['login']}")
+    return None
 
-def check_if_logged_in():
-    """ Проверка входа путём поиска баланса фунтов """
-    pounds_balance = find_and_copy_pound()
 
-    if pounds_balance and isinstance(pounds_balance, str):
-        pounds_balance = pounds_balance.strip()
+def handle_error_and_retry(login, password):
+    print(f'Пытаемся выполнить вход для {login}...')
+    retries = 0
 
-        if pounds_balance.startswith('£'):
-            numbers_part = pounds_balance[1:]
+    # повторяем попытки пока не исчерпаем лимит
+    while retries < 5:
+        print('Проверяем наличие ошибки на экране...')
+        error_coords = load_coords(ERROR_COORDS_FILE)
 
-            if '.' in numbers_part:
-                integer_part, decimal_part = numbers_part.split('.', 1)
-                if integer_part.isdigit() and decimal_part.isdigit():
-                    print(f"Успешный вход! Баланс: {pounds_balance}")
-                    return True
-            else:
-                if numbers_part.isdigit():
-                    print(f"Успешный вход! Баланс: {pounds_balance}")
-                    return True
+        if error_coords:
+            try:
+                screenshot = pyautogui.screenshot(
+                    region=(error_coords[0], error_coords[1], 599, 592)
+                )
+                screenshot.save('screenshots/screenshot_error_area.png')
 
-            print(f"Неверный формат баланса: {pounds_balance}")
-            return False
+                error_location = pyautogui.locate(
+                    ERROR_IMAGE, screenshot, confidence=0.8
+                )
+
+                if error_location:
+                    print(
+                        "Ошибка найдена на экране! Пожалуйста, введите новые координаты "
+                        "для полей 'Пароль' и 'Второй Login'."
+                    )
+                    enter_credentials(login, password, error_coords=True)
+                    retries += 1
+                    time.sleep(3)
+                    continue
+
+                # если дошли сюда — ошибки не найдено
+                print(f'Успешный вход для {login}. Ошибка не найдена на экране.')
+                return True
+
+            except pyautogui.ImageNotFoundException:
+                print(
+                    'Не удалось найти изображение ошибки, возможно, ошибка отсутствует. '
+                    'Продолжаем выполнение.'
+                )
+                return True
+
         else:
-            print(f"Баланс не начинается с £: {pounds_balance}")
+            # координаты ошибки не загружены/не найдены
             return False
-    else:
-        print("Не удалось получить баланс или получено пустое значение")
-        return False
+
+    # если исчерпали retries
+    return False
 
 
 def wait_for_browser_to_close():
@@ -454,7 +477,7 @@ def main_step(user, selected_wheel="Третье колесо"):
     if wait_for_mimic_window():
         """ Открытие полноэкранного режима """
         open_fullscreen()
-        time.sleep(7)
+        time.sleep(8)
 
         """ Вход в аккаунт """
         process_user_account(user)
@@ -463,18 +486,6 @@ def main_step(user, selected_wheel="Третье колесо"):
         """ Закрытие модалки """
         close_modal_window_and_click_wheel()
         time.sleep(1)
-
-        """ Проверка входа в аккаунт """
-        result_of_auth = check_if_logged_in()
-
-        if not result_of_auth:
-            print(f"Аутентификация не удалась для пользователя {user['login']}")
-            pyautogui.hotkey('alt', 'f4')
-            time.sleep(1)
-            return False
-
-        pyautogui.press('f12')
-        time.sleep(0.5)
 
         """ Клик по выбранному колесу """
         if selected_wheel == 'Первое колесо':
@@ -485,9 +496,9 @@ def main_step(user, selected_wheel="Третье колесо"):
             click_third_wheel()
 
         """ Прокрутка выбранного колеса """
-        time.sleep(5)
+        time.sleep(3)
         second_click_to_wheel()
-        time.sleep(4)
+        time.sleep(9)
 
         """ Закрытие модального окна после прокрутки """
         press_krestik()
@@ -536,30 +547,12 @@ class WorkersThread(QThread):  # Сам воркер - бот который к�
             self.wait_if_paused()
             self.update_label.emit(f'Обработка пользователя: {user["login"]}')
 
-            attempt = 1
-            success = False
-
-            while attempt <= 3 and not success:
-                try:
-                    self.update_label.emit(f'Попытка {attempt} для пользователя {user["login"]}')
-                    success = main_step(user, self.selected_wheel)
-
-                    if success:
-                        self.update_label.emit(f'Пользователь {user["login"]} успешно обработан')
-                    else:
-                        self.update_label.emit(f'Попытка {attempt} не удалась для {user["login"]}')
-                        attempt += 1
-                        if attempt <= 3:
-                            time.sleep(2)
-
-                except Exception as e:
-                    self.update_label.emit(f'Ошибка при обработке {user["login"]} (попытка {attempt}): {e}')
-                    attempt += 1
-                    if attempt <= 3:
-                        time.sleep(2)
-
-            if not success:
-                self.update_label.emit(f'Пользователь {user["login"]} не был обработан после 3 попыток')
+            try:
+                main_step(user)
+                self.update_label.emit(f'Пользователь {user["login"]} обработан')
+            except Exception as e:
+                self.update_label.emit(f'Ошибка при обработке {user["login"]}: {e}')
+                continue
 
         self.update_label.emit('Все пользователи обработаны!')
 
@@ -695,12 +688,14 @@ class MainWindow(QMainWindow):
         if self.thread.isRunning():
             print("Процесс приостановлен")
             self.thread._is_paused = True
+            self.thread._is_running = False
             self.thread.update_label.emit('Процесс приостановлен')
 
     def resume_process(self):
         if self.thread.isRunning():
             print("Процесс возобновлен")
             self.thread._is_paused = False
+            self.thread._is_running = True
             self.thread.update_label.emit('Процесс возобновлен')
 
     def clear_excel_columns(self):
