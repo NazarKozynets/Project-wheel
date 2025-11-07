@@ -65,6 +65,7 @@ def read_excel(file_name):
         column_c = row[2] if row[2] else ''
         column_e = row[4] if row[4] else ''
         users.append({'login': login, 'password': password, 'column_c': column_c, 'column_e': column_e})
+    users = [user for user in users if user['login'] and user['password']]
     return users
 
 
@@ -104,40 +105,56 @@ def write_excel(current_login, type, amount):
         return False
 
 
-""" Ввод данных аккаунта """
 def enter_credentials(login, password, error_coords=False):
+    """Ввод данных аккаунта без использования буфера обмена"""
+
     if not error_coords:
         print('Нажимаем первую кнопку Login')
         click_button(LOGIN_BUTTON_FILE)
         time.sleep(2)
+
         print(f'Вводим логин: {login}')
         click_button(LOGIN_FIELD_FILE)
-        pyautogui.typewrite(login, interval=0.1)
+        time.sleep(1)
+        pyautogui.click()
+        time.sleep(0.5)
+        pyautogui.typewrite(login, interval=0.05)
+        time.sleep(0.5)
+
         print(f'Вводим пароль: {password}')
         click_button(PASSWORD_FIELD_FILE)
-        pyautogui.typewrite(password, interval=0.1)
+        time.sleep(1)
+        pyautogui.click()
+        time.sleep(0.5)
+        pyautogui.typewrite(password, interval=0.05)
+        time.sleep(1)
+
         print('Нажимаем вторую кнопку Login')
         click_button(SECOND_LOGIN_BUTTON_FILE)
-    if error_coords:
+        time.sleep(2)
+
+    else:
+        print('Обрабатываем ввод с ошибкой координат')
         click_button(ERROR_PASSWORD_FIELD_FILE)
-    if error_coords:
+        time.sleep(1)
+        pyautogui.click()
+        time.sleep(0.5)
+        pyautogui.typewrite(password, interval=0.05)
+        time.sleep(1)
         click_button(ERROR_SECOND_LOGIN_BUTTON_FILE)
-    return None
 
+    print('Ввод завершён.')
 
-""" Функция для сохранения новых кордов """
 def request_new_coords(file_name, cords_name, parent=None):
-    # Модалька для понимания
+    """ Функция для сохранения новых кордов """
     if parent:
         QMessageBox.information(parent, f'Настройка координат {cords_name}',
                                 f'Наведите курсор на нужную позицию {cords_name} и нажмите F7 для сохранения координат.')
 
     print('Наведите курсор на нужную позицию и нажмите F7')
 
-    # Ожидание нажатия F12
     keyboard.wait('f7')
 
-    # Получение и запись кордов
     x, y = pyautogui.position()
     save_coords((x, y), file_name)
 
@@ -147,61 +164,9 @@ def request_new_coords(file_name, cords_name, parent=None):
         print(f'Координаты сохранены: {x}, {y}')
 
 
-def handle_error_and_retry(login, password):
-    print(f'Пытаемся выполнить вход для {login}...')
-    retries = 0
-
-    # повторяем попытки пока не исчерпаем лимит
-    while retries < 5:
-        print('Ждём 7 секунд перед проверкой на ошибку...')
-        time.sleep(7)
-
-        print('Проверяем наличие ошибки на экране...')
-        error_coords = load_coords(ERROR_COORDS_FILE)
-
-        if error_coords:
-            try:
-                screenshot = pyautogui.screenshot(
-                    region=(error_coords[0], error_coords[1], 599, 592)
-                )
-                screenshot.save('screenshots/screenshot_error_area.png')
-
-                error_location = pyautogui.locate(
-                    ERROR_IMAGE, screenshot, confidence=0.8
-                )
-
-                if error_location:
-                    print(
-                        "Ошибка найдена на экране! Пожалуйста, введите новые координаты "
-                        "для полей 'Пароль' и 'Второй Login'."
-                    )
-                    enter_credentials(login, password, error_coords=True)
-                    retries += 1
-                    time.sleep(3)
-                    continue
-
-                # если дошли сюда — ошибки не найдено
-                print(f'Успешный вход для {login}. Ошибка не найдена на экране.')
-                return True
-
-            except pyautogui.ImageNotFoundException:
-                print(
-                    'Не удалось найти изображение ошибки, возможно, ошибка отсутствует. '
-                    'Продолжаем выполнение.'
-                )
-                return True
-
-        else:
-            # координаты ошибки не загружены/не найдены
-            return False
-
-    # если исчерпали retries
-    return False
-
-
 def close_modal_window_and_click_wheel():
     krestik_coords = load_coords('coords/krestik.txt')
-    time.sleep(7)
+    time.sleep(6)
     print(f'Нажимаем на крестик по координатам: {krestik_coords}')
     pyautogui.click(krestik_coords)
 
@@ -212,25 +177,22 @@ def open_fullscreen():
     pyautogui.click(fullscreen_coords)
 
 
-def click_third_wheel():
-    wheel_coords = load_coords('coords/third_wheel.txt')
-    print(f'Нажимаем на третье колесо по координатам: {wheel_coords}')
-    pyautogui.click(wheel_coords)
-    time.sleep(2)
+def click_first_wheel():
+    wheel_coords = load_coords('coords/first_wheel.txt')
+    print(f'Нажимаем на первое колесо по координатам: {wheel_coords}')
+    pyautogui.doubleClick(wheel_coords)
 
 
 def click_second_wheel():
     wheel_coords = load_coords('coords/second_wheel.txt')
     print(f'Нажимаем на второе колесо по координатам: {wheel_coords}')
-    pyautogui.click(wheel_coords)
-    time.sleep(2)
+    pyautogui.doubleClick(wheel_coords)
 
 
-def click_first_wheel():
-    wheel_coords = load_coords('coords/first_wheel.txt')
-    print(f'Нажимаем на первое колесо по координатам: {wheel_coords}')
-    pyautogui.click(wheel_coords)
-    time.sleep(2)
+def click_third_wheel():
+    wheel_coords = load_coords('coords/third_wheel.txt')
+    print(f'Нажимаем на третье колесо по координатам: {wheel_coords}')
+    pyautogui.doubleClick(wheel_coords)
 
 
 def second_click_to_wheel():
@@ -313,68 +275,48 @@ def wait_for_mimic_window(timeout=30):
     return False
 
 
-def enter_url_in_browser(retries=3):
-    """Вводит URL в адресную строку браузера"""
-    for attempt in range(retries):
-        print(f'Попытка вставки URL ({attempt + 1}/{retries})...')
-
-        try:
-            pyperclip.copy(URL_TO_OPEN)
-            time.sleep(0.5)
-
-            pyautogui.hotkey('ctrl', 'l')
-            time.sleep(0.5)
-
-            pyautogui.hotkey('ctrl', 'v')
-            time.sleep(0.5)
-
-            pyautogui.press('enter')
-            time.sleep(2)
-
-            pyautogui.hotkey('ctrl', 'l')
-            time.sleep(0.3)
-            pyautogui.hotkey('ctrl', 'c')
-            time.sleep(0.5)
-
-            current_url = pyperclip.paste().strip()
-            print(f'Текущий URL: {current_url}')
-
-            if 'ladbrokes.com' in current_url:
-                print('Успешно перешли на сайт Ladbrokes!')
-                return True
-            else:
-                print(f'Не удалось перейти на Ladbrokes. Текущий URL: {current_url}')
-
-        except Exception as e:
-            print(f'Ошибка при вводе URL: {e}')
-
-    print('Не удалось вставить URL после всех попыток.')
-    return False
-
-
-def login_to_site():
-    if wait_for_mimic_window():
-        enter_url_in_browser()
-    return None
-
-
 def process_user_account(user):
     enter_credentials(user['login'], user['password'])
     time.sleep(2)
+
     print('Закрываем окно с сохранением пароля.')
     target_point2_coords = load_coords('coords/target_point2.txt')
-    print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
     pyautogui.click(target_point2_coords)
-    time.sleep(1)
+    time.sleep(3)
+
     print('Закрываем окно с языком.')
     target_point2_coords = load_coords('coords/target_point2.txt')
-    print(f'Нажимаем на колесо по новым координатам: {target_point2_coords}')
     pyautogui.click(target_point2_coords)
-    time.sleep(1)
-    # success = handle_error_and_retry(user['login'], user['password'])
-    # if success:
-    print(f"Успешный вход для пользователя: {user['login']}")
-    # return None
+
+
+def check_if_logged_in():
+    """ Проверка входа путём поиска баланса фунтов """
+    pounds_balance = find_and_copy_pound()
+
+    if pounds_balance and isinstance(pounds_balance, str):
+        pounds_balance = pounds_balance.strip()
+
+        if pounds_balance.startswith('£'):
+            numbers_part = pounds_balance[1:]
+
+            if '.' in numbers_part:
+                integer_part, decimal_part = numbers_part.split('.', 1)
+                if integer_part.isdigit() and decimal_part.isdigit():
+                    print(f"Успешный вход! Баланс: {pounds_balance}")
+                    return True
+            else:
+                if numbers_part.isdigit():
+                    print(f"Успешный вход! Баланс: {pounds_balance}")
+                    return True
+
+            print(f"Неверный формат баланса: {pounds_balance}")
+            return False
+        else:
+            print(f"Баланс не начинается с £: {pounds_balance}")
+            return False
+    else:
+        print("Не удалось получить баланс или получено пустое значение")
+        return False
 
 
 def wait_for_browser_to_close():
@@ -382,24 +324,19 @@ def wait_for_browser_to_close():
     time.sleep(10)
 
 
-def find_and_copy_pound(): # Функция поиска и копирования фунтов в DevTools
+def find_and_copy_pound():  # Функция поиска и копирования фунтов в DevTools
     for attempt in range(3):
-        print(f'Попытка {attempt + 1} из 3 скопировать фунты...')
 
         if attempt > 0:
-            print('Закрываем DevTools перед началом новой попытки...')
             pyautogui.press('f12')
             time.sleep(2)
 
-        print('Нажимаем клавишу F12.')
         pyautogui.press('f12')
         time.sleep(3)
 
-        print('Нажимаем комбинацию Ctrl + F для поиска.')
         pyautogui.hotkey('ctrl', 'f')
         time.sleep(2)
 
-        print('Вводим символ \'£\' в строку поиска.')
         pyperclip.copy('£')
         pyautogui.hotkey('ctrl', 'v')
         time.sleep(1)
@@ -409,36 +346,31 @@ def find_and_copy_pound(): # Функция поиска и копировани
         pyautogui.press('f3')
         time.sleep(1)
 
-        print('Загружаем координаты для новой точки.')
         target_point_coords = load_coords('coords/target_point.txt')
-        print(f'Наводим курсор на точку по координатам: {target_point_coords}')
         pyautogui.moveTo(target_point_coords)
-        print('Делаем двойной клик.')
         pyautogui.doubleClick()
         time.sleep(1)
-        print('Копируем содержимое с помощью Ctrl + C.')
         pyautogui.hotkey('ctrl', 'c')
         time.sleep(1)
 
         copied_data = pyperclip.paste()
         if copied_data:
-            print('Фунты успешно скопированы!')
             time.sleep(1)
             return copied_data
         else:
             print(f'Не удалось скопировать фунты на попытке {attempt + 1}')
 
-    print('Не удалось скопировать фунты после 3 попыток')
     time.sleep(1)
     return None
 
-def find_and_copy_tokens(): # Функция поиска и копирования токенов в DevTools
+
+def find_and_copy_tokens():  # Функция поиска и копирования токенов в DevTools
     for attempt in range(3):
         print(f'Попытка {attempt + 1} из 3 скопировать токены...')
 
         print('Закрываем DevTools перед началом новой попытки...')
         pyautogui.press('f12')
-        time.sleep(2)
+        time.sleep(1)
 
         print('Нажимаем клавишу F12.')
         pyautogui.press('f12')
@@ -446,7 +378,7 @@ def find_and_copy_tokens(): # Функция поиска и копирован�
 
         print('Нажимаем комбинацию Ctrl + F для поиска.')
         pyautogui.hotkey('ctrl', 'f')
-        time.sleep(2)
+        time.sleep(1)
 
         """ Поиск токенов """
 
@@ -489,53 +421,6 @@ def find_and_copy_tokens(): # Функция поиска и копирован�
     return None
 
 
-def main_step(user, selected_wheel="Третье колесо"):
-    """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
-    print(f"Обрабатываем пользователя: {user['login']}")
-
-    pyautogui.hotkey('alt', 'f4')
-    time.sleep(2)
-
-    print('Запускаем разовый профиль в мультилогине...')
-    click_button(COORDS_FILE)
-    time.sleep(4)
-
-    if wait_for_mimic_window():
-        open_fullscreen()
-        print("Браузер успешно открыт, продолжаем работу...")
-
-        enter_url_in_browser()
-        time.sleep(5)
-        process_user_account(user)
-
-        """ Закрытие модалки и клики по колёсам """
-        close_modal_window_and_click_wheel()
-
-        if selected_wheel == 'Первое колесо':
-            click_first_wheel()
-        elif selected_wheel == 'Второе колесо':
-            click_second_wheel()
-        elif selected_wheel == 'Третье колесо':
-            click_third_wheel()
-
-        """ Поиск кол-ва фунтов """
-        pound_amount = find_and_copy_pound()
-        write_excel(user['login'], 'pounds', pound_amount)
-
-        """ Поиск кол-ва токенов """
-        tokens_amount = find_and_copy_tokens()
-        write_excel(user['login'], 'tokens', tokens_amount)
-
-
-        press_krestik()
-    else:
-        print("Не удалось открыть браузер, пропускаем пользователя")
-
-    print("Завершаем работу с браузером...")
-    pyautogui.hotkey('alt', 'f4')
-    time.sleep(1)
-
-
 def wait_if_paused(self):
     if self._is_paused:
         self.msleep(100)
@@ -544,7 +429,88 @@ def wait_if_paused(self):
     return None
 
 
-class WorkersThread(QThread): # Сам воркер - бот который кликает по всему
+def safe_keyboard_reset():
+    """Сброс состояния клавиатуры на всякий случай"""
+    try:
+        pyautogui.keyUp('ctrl')
+        pyautogui.keyUp('shift')
+        pyautogui.keyUp('alt')
+        pyautogui.keyUp('win')
+        print("✓ Сброшено состояние клавиатуры")
+    except:
+        pass
+
+
+def main_step(user, selected_wheel="Третье колесо"):
+    """ Сборник функций воркера связанных с браузером (от открытия браузера до закрытия) """
+    print(f"Обрабатываем пользователя: {user['login']}")
+    safe_keyboard_reset()
+
+    print('Запускаем разовый профиль в мультилогине...')
+    click_button(COORDS_FILE)
+    time.sleep(4)
+
+    """ Проверка открыто ли окно браузера """
+    if wait_for_mimic_window():
+        """ Открытие полноэкранного режима """
+        open_fullscreen()
+        time.sleep(7)
+
+        """ Вход в аккаунт """
+        process_user_account(user)
+        time.sleep(5)
+
+        """ Закрытие модалки """
+        close_modal_window_and_click_wheel()
+        time.sleep(1)
+
+        """ Проверка входа в аккаунт """
+        result_of_auth = check_if_logged_in()
+
+        if not result_of_auth:
+            print(f"Аутентификация не удалась для пользователя {user['login']}")
+            pyautogui.hotkey('alt', 'f4')
+            time.sleep(1)
+            return False
+
+        pyautogui.press('f12')
+        time.sleep(0.5)
+
+        """ Клик по выбранному колесу """
+        if selected_wheel == 'Первое колесо':
+            click_first_wheel()
+        elif selected_wheel == 'Второе колесо':
+            click_second_wheel()
+        elif selected_wheel == 'Третье колесо':
+            click_third_wheel()
+
+        """ Прокрутка выбранного колеса """
+        time.sleep(5)
+        second_click_to_wheel()
+        time.sleep(4)
+
+        """ Закрытие модального окна после прокрутки """
+        press_krestik()
+        time.sleep(1)
+
+        """ Поиск кол-ва фунтов """
+        pound_amount = find_and_copy_pound()
+        write_excel(user['login'], 'pounds', pound_amount)
+
+        """ Поиск кол-ва токенов """
+        tokens_amount = find_and_copy_tokens()
+        write_excel(user['login'], 'tokens', tokens_amount)
+    else:
+        print("Не удалось открыть браузер, пропускаем пользователя")
+        return False
+
+    print("Завершаем работу с браузером...")
+    pyautogui.hotkey('alt', 'f4')
+    time.sleep(1)
+    return True
+
+
+class WorkersThread(QThread):  # Сам воркер - бот который кликает по всему
     update_label = pyqtSignal(str)
 
     def __init__(self, selected_wheel=None):
@@ -563,16 +529,37 @@ class WorkersThread(QThread): # Сам воркер - бот который кл
         users = read_excel(self.excel_file)
         self.update_label.emit(f'Найдено пользователей: {len(users)}')
 
+        print(users)
+
         for user in users:
             print(user)
             self.wait_if_paused()
             self.update_label.emit(f'Обработка пользователя: {user["login"]}')
-            try:
-                main_step(user)
-                self.update_label.emit(f'Пользователь {user["login"]} обработан')
-            except Exception as e:
-                self.update_label.emit(f'Ошибка при обработке {user["login"]}: {e}')
-                continue
+
+            attempt = 1
+            success = False
+
+            while attempt <= 3 and not success:
+                try:
+                    self.update_label.emit(f'Попытка {attempt} для пользователя {user["login"]}')
+                    success = main_step(user, self.selected_wheel)
+
+                    if success:
+                        self.update_label.emit(f'Пользователь {user["login"]} успешно обработан')
+                    else:
+                        self.update_label.emit(f'Попытка {attempt} не удалась для {user["login"]}')
+                        attempt += 1
+                        if attempt <= 3:
+                            time.sleep(2)
+
+                except Exception as e:
+                    self.update_label.emit(f'Ошибка при обработке {user["login"]} (попытка {attempt}): {e}')
+                    attempt += 1
+                    if attempt <= 3:
+                        time.sleep(2)
+
+            if not success:
+                self.update_label.emit(f'Пользователь {user["login"]} не был обработан после 3 попыток')
 
         self.update_label.emit('Все пользователи обработаны!')
 
@@ -585,8 +572,7 @@ class WorkersThread(QThread): # Сам воркер - бот который кл
             self._is_paused = False
             print('Поток возобновлен.')
 
-
-class WheelSelectionWindow(QDialog): # Окно выбора колеса
+class WheelSelectionWindow(QDialog):  # Окно выбора колеса
     wheel_selected = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -626,6 +612,8 @@ class WheelSelectionWindow(QDialog): # Окно выбора колеса
 
 
 """ Окно программы """
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -738,10 +726,10 @@ class MainWindow(QMainWindow):
                 ('coords/second_wheel.txt', 'второго колеса'),
                 ('coords/third_wheel.txt', 'третьего колеса'),
                 ('coords/third_wheel2.txt', 'колеса для прокрутки'),
+                ('coords/target_point5.txt', 'крестика после прокрутки'),
                 ('coords/target_point.txt', 'фунта'),
                 ('coords/target_point3.txt', 'места открытия ледбаксов'),
-                ('coords/target_point4.txt', 'количества ледбаксов')
-                # ('coords/target_point5.txt', 'крестика в поисковой строке'),
+                ('coords/target_point4.txt', 'количества ледбаксов'),
             ]
 
             # Настройка всех координат через цикл
